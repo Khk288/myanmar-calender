@@ -1,0 +1,705 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>မြန်မာ ပေါင်နှံ ပြက္ခဒိန်</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;700&family=Noto+Serif+Myanmar:wght@600&display=swap">
+<style>
+/* Layout: a summary strip (pawn date → due date, duration chips) above one month grid. The grid is Gregorian weeks, but every cell leads with the Myanmar day. */
+:root {
+  --bg: #F1F2F4;
+  --surface: #FFFFFF;
+  --ink: #1D2127;
+  --muted: #5B6470;
+  --line: #D8DCE2;
+  --accent: #8F5F00;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F6EBCF;
+  --good: #1C6B45;
+  --good-soft: #DDF0E6;
+  --bad: #A32A2A;
+  --bad-soft: #F8E1E1;
+  --full: #D9A21B;
+  --new: #3B4350;
+  --font-body: "Noto Sans Myanmar", "Padauk", "Myanmar Text", system-ui, sans-serif;
+  --font-display: "Noto Serif Myanmar", "Noto Sans Myanmar", "Padauk", "Myanmar Text", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171B; --surface: #1C2026; --ink: #ECEEF1; --muted: #9AA3AE; --line: #2D333B;
+    --accent: #E3B351; --accent-ink: #1A1303; --accent-soft: #35290F;
+    --good: #6FD0A0; --good-soft: #17301F; --bad: #F08A8A; --bad-soft: #3A1C1C;
+    --full: #F0C05A; --new: #8A94A3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171B; --surface: #1C2026; --ink: #ECEEF1; --muted: #9AA3AE; --line: #2D333B;
+  --accent: #E3B351; --accent-ink: #1A1303; --accent-soft: #35290F;
+  --good: #6FD0A0; --good-soft: #17301F; --bad: #F08A8A; --bad-soft: #3A1C1C;
+  --full: #F0C05A; --new: #8A94A3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.7;
+  padding-inline: 16px; padding-block: 20px 48px;
+}
+.wrap { max-width: 720px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
+h1, h2, p { margin: 0; }
+.top { display: flex; flex-direction: column; gap: 6px; }
+.kicker { font-size: 12px; letter-spacing: .06em; color: var(--accent); font-weight: 700; }
+h1 { font-family: var(--font-display); font-size: 24px; line-height: 1.5; font-weight: 600; text-wrap: balance; }
+.lede { color: var(--muted); font-size: 14px; max-width: 62ch; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 560px) { .pair { grid-template-columns: 1fr 1fr; } }
+.slot { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); min-width: 0; }
+.slot.pawn { border-color: var(--accent); background: var(--accent-soft); }
+.slot.due { border-color: var(--good); background: var(--good-soft); }
+.slot .k { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.slot.pawn .k { color: var(--accent); }
+.slot.due .k { color: var(--good); }
+.slot .v { font-family: var(--font-display); font-size: 18px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+.slot .r { font-size: 12px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 14px; min-height: 36px; cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.lbl { font-size: 12px; color: var(--muted); }
+.note { font-size: 13px; color: var(--muted); max-width: 66ch; }
+.note.warn { color: var(--bad); }
+.err { background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+
+.cal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cal-title { display: flex; flex-direction: column; min-width: 0; }
+.cal-title .mm { font-family: var(--font-display); font-size: 18px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+.cal-title .gg { font-size: 13px; color: var(--muted); }
+.nav { display: flex; gap: 6px; flex: none; }
+.nav button, .ghost {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  min-height: 40px; min-width: 40px; padding: 2px 12px; cursor: pointer;
+}
+.nav button:hover, .ghost:hover { border-color: var(--accent); }
+.jump { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.f { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); min-width: 0; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 4px 10px; width: 100%; min-width: 0; }
+button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.dow span { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding-block: 2px; }
+.dow span:first-child { color: var(--bad); }
+.day {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid transparent; border-radius: 8px; cursor: pointer;
+  min-height: 64px; padding: 3px 2px 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; position: relative; min-width: 0;
+}
+.day:hover { border-color: var(--accent); }
+.day .g { align-self: flex-start; padding-inline-start: 4px; font-size: 10px; line-height: 1.4; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day .m { font-size: 12px; font-weight: 500; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+.day .mn { display: none; font-size: 9px; line-height: 1.35; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.day.first .mn { display: block; }
+.day.sun .m { color: var(--bad); }
+.day.other { opacity: .38; }
+.day .dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; }
+.day .dot.full { background: var(--full); }
+.day .dot.newm { background: var(--new); }
+.day.today .g { color: var(--accent); font-weight: 700; text-decoration: underline; }
+.day.pawn { background: var(--accent); color: var(--accent-ink); }
+.day.pawn .g, .day.pawn .m, .day.pawn .mn { color: var(--accent-ink); }
+.day.due { background: var(--good-soft); border: 2px solid var(--good); }
+.day.due .m { color: var(--good); font-weight: 700; }
+@media (min-width: 640px) { .day { min-height: 74px; } .day .mn { display: block; font-size: 10px; } .day .m { font-size: 13px; } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw.p { background: var(--accent); } .sw.d { border: 2px solid var(--good); background: var(--good-soft); }
+.sw.f { background: var(--full); border-radius: 50%; } .sw.n { background: var(--new); border-radius: 50%; }
+
+details.tests { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px 16px; }
+details.tests summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 700; font-size: 14px; list-style: none; }
+details.tests summary::-webkit-details-marker { display: none; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 10px; border-radius: 999px; font-weight: 500; }
+.pill.ok { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.tlist { list-style: none; margin: 0; padding: 0 0 12px; display: flex; flex-direction: column; gap: 10px; }
+.tlist li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 13px; line-height: 1.6; }
+.tlist .mark { font-weight: 700; }
+.tlist .pass .mark { color: var(--good); }
+.tlist .fail .mark { color: var(--bad); }
+.tlist small { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <p class="kicker">အပေါင်ဆိုင်သုံး</p>
+    <h1>မြန်မာ ပေါင်နှံ ပြက္ခဒိန်</h1>
+    <p class="lede">ရက်တစ်ရက်ကို နှိပ်ရင် အပေါင်ရက်ဖြစ်ပြီး၊ ရွေးထားတဲ့ ကာလကို မြန်မာလ အတိုင်း ပေါင်းပြီး သက်တမ်းကုန်ရက်ကို အလိုအလျောက် ပြပါတယ်။ ဝါထပ်လ၊ နှောင်းတန်ခူး၊ နှစ်ကူးရက်တွေကိုပါ engine က တိုက်ရိုက်ဖော်ပြပါတယ်။</p>
+  </header>
+
+  <section class="card" aria-label="အပေါင်ရက်နဲ့ သက်တမ်းကုန်ရက်">
+    <div class="pair">
+      <div class="slot pawn"><span class="k">အပေါင်ရက်</span><span class="v" id="v-pawn">–</span><span class="r" id="r-pawn"></span></div>
+      <div class="slot due"><span class="k">သက်တမ်းကုန်ရက်</span><span class="v" id="v-due">–</span><span class="r" id="r-due"></span></div>
+    </div>
+    <div>
+      <p class="lbl" id="lbl-dur">အပေါင်ကာလ</p>
+      <div class="chips" id="chips" role="group" aria-labelledby="lbl-dur"></div>
+    </div>
+    <p class="note" id="n-elapsed"></p>
+    <p class="note warn" id="n-naive" hidden></p>
+    <div class="err" id="err" role="alert" hidden></div>
+  </section>
+
+  <section class="card" aria-label="ပြက္ခဒိန်">
+    <div class="cal-head">
+      <div class="cal-title"><span class="mm" id="t-mm"></span><span class="gg" id="t-gg"></span></div>
+      <div class="nav">
+        <button type="button" id="b-prev" aria-label="ရှေ့လ">‹</button>
+        <button type="button" id="b-today">ယနေ့</button>
+        <button type="button" id="b-next" aria-label="နောက်လ">›</button>
+      </div>
+    </div>
+    <div class="jump">
+      <label class="f" for="j-year">မြန်မာ ခုနှစ်<select id="j-year"></select></label>
+      <label class="f" for="j-month">မြန်မာ လ<select id="j-month"></select></label>
+    </div>
+    <div class="dow" aria-hidden="true"><span>နွေ</span><span>လာ</span><span>ဂါ</span><span>ဗုဒ္ဓ</span><span>ကြာ</span><span>သော</span><span>စနေ</span></div>
+    <div class="grid" id="grid"></div>
+    <div class="legend"><span><i class="sw f"></i>လပြည့်</span><span><i class="sw n"></i>လကွယ်</span><span><i class="sw p"></i>အပေါင်ရက်</span><span><i class="sw d"></i>သက်တမ်းကုန်ရက်</span></div>
+  </section>
+
+  <details class="tests" id="tests">
+    <summary><span>စစ်ဆေးမှု (Test cases)</span><span class="pill ok" id="t-sum">…</span></summary>
+    <ul class="tlist" id="t-list"></ul>
+  </details>
+</main>
+
+<script>
+// Myanmar calendar engine — implementation of the published algorithm
+// "Algorithm, Program and Calculation of Myanmar Calendar" (Dr. Yan Naing Aye, mmcal / ceMmDateTime lineage).
+// Pure functions, no dependencies. Works in Node and browsers.
+(function (root) {
+  'use strict';
+  var SY = 1577917828.0 / 4320000.0;   // solar year (365.2587565)
+  var LM = 1577917828.0 / 53433336.0;  // lunar month (29.53058795)
+  var MO = 1954168.050623;             // beginning of 0 ME for MMT
+
+  // Era constants: EI era id, WO watat offset, NM months to near full moon,
+  // fme full-moon exceptions [[year, +-days]], wte watat exceptions [years]
+  function getMyConsts(my) {
+    if (my >= 1312) return { EI: 3.2, WO: -0.5, NM: 8, fme: [[1377, 1]], wte: [1344, 1345] };
+    if (my >= 1217) return { EI: 3, WO: -1, NM: 4, fme: [[1234, 1], [1261, -1]], wte: [1263, 1264] };
+    if (my >= 1100) return { EI: 2.3, WO: -0.85, NM: -1, fme: [[1120, 1], [1126, -1], [1150, 1], [1172, -1], [1207, 1]], wte: [1201, 1202] };
+    return { EI: 2.2, WO: -1.1, NM: -1, fme: [], wte: [] };
+  }
+
+  // watat (intercalary month) check: returns {fm: full moon JDN of (2nd) Waso, watat: 0|1}
+  function checkWatat(my) {
+    var c = getMyConsts(my);
+    var TA = (SY / 12 - LM) * (12 - c.NM);
+    var ed = (SY * (my + 3739)) % LM;
+    if (ed < TA) ed += LM;
+    var fm = Math.round(SY * my + MO - ed + 4.5 * LM + c.WO);
+    var TW = LM - (SY / 12 - LM) * c.NM;
+    var watat = ed >= TW ? 1 : 0;
+    if (c.wte.indexOf(my) >= 0) watat = 1 - watat;
+    for (var i = 0; i < c.fme.length; i++) if (c.fme[i][0] === my) fm += c.fme[i][1];
+    return { fm: fm, watat: watat };
+  }
+
+  // year info: myt 0 common | 1 little watat (384) | 2 big watat (385); tg1 = JDN of 1 Tagu waxing
+  function getMyYearInfo(my) {
+    var yd = 0, y1, y2 = checkWatat(my), myt = y2.watat, nd = 0, fm;
+    do { yd++; y1 = checkWatat(my - yd); } while (y1.watat === 0 && yd < 3);
+    if (myt) {
+      nd = (y2.fm - y1.fm) % 354;
+      myt = Math.floor(nd / 31) + 1;
+      fm = y2.fm;
+    } else fm = y1.fm + 354 * yd;
+    return { myt: myt, tg1: y1.fm + 354 * yd - 102, fm: fm };
+  }
+
+  // JDN -> Myanmar date. mm codes: 0 First Waso, 1 Tagu, 2 Kason, 3 Nayon, 4 Waso, 5 Wagaung,
+  // 6 Tawthalin, 7 Thadingyut, 8 Tazaungmon, 9 Nadaw, 10 Pyatho, 11 Tabodwe, 12 Tabaung, 13 Late Tagu, 14 Late Kason
+  // mp moon phase 0 waxing, 1 full, 2 waning, 3 new; md day of fortnight; dm = day of month (1..30)
+  function j2m(jdn) {
+    jdn = Math.round(jdn);
+    var my = Math.floor((jdn - 0.5 - MO) / SY);
+    var yo = getMyYearInfo(my);
+    var dd = jdn - yo.tg1 + 1;
+    var b = Math.floor(yo.myt / 2);
+    var c = Math.floor(1 / (yo.myt + 1));
+    var myl = 354 + (1 - c) * 30 + b;
+    var mmt = Math.floor((dd - 1) / myl);
+    dd -= mmt * myl;
+    var a = Math.floor((dd + 423) / 512);
+    var mm = Math.floor((dd - b * a + c * a * 30.0 + 29.26) / 29.544);
+    var e = Math.floor((mm + 12) / 16);
+    var f = Math.floor((mm + 11) / 16);
+    var dm = dd - Math.floor(29.544 * mm - 29.26) - b * e + c * f * 30;
+    mm += f * 3 - e * 4 + 12 * mmt;
+    var mml = 30 - mm % 2;
+    if (mm === 3) mml += b;
+    var mp = Math.floor((dm + 1) / 16) + Math.floor(dm / 16) + Math.floor(dm / mml);
+    var md = dm - 15 * Math.floor(dm / 16);
+    return { my: my, myt: yo.myt, mm: mm, mp: mp, md: md, dm: dm, jdn: jdn };
+  }
+
+  // Myanmar date -> JDN. dm = day of month 1..30 (absolute, not fortnight)
+  function m2j(my, mm, dm) {
+    var yo = getMyYearInfo(my);
+    var b = Math.floor(yo.myt / 2);
+    var c = Math.floor(1 / (yo.myt + 1));
+    var mmt = Math.floor(mm / 13);
+    mm = mm % 13 + mmt;
+    mm += 4 - Math.floor((mm + 15) / 16) * 4 + Math.floor((mm + 12) / 16);
+    var dd = dm + Math.floor(29.544 * mm - 29.26) - c * Math.floor((mm + 11) / 16) * 30 + b * Math.floor((mm + 12) / 16);
+    var myl = 354 + (1 - c) * 30 + b;
+    dd += mmt * myl;
+    return dd + yo.tg1 - 1;
+  }
+
+  // Gregorian <-> JDN
+  function g2j(y, m, d) {
+    var a = Math.floor((14 - m) / 12), yy = y + 4800 - a, mm = m + 12 * a - 3;
+    return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045;
+  }
+  function j2g(j) {
+    var a = j + 32044, b = Math.floor((4 * a + 3) / 146097), c = a - Math.floor(146097 * b / 4);
+    var d = Math.floor((4 * c + 3) / 1461), e = c - Math.floor(1461 * d / 4), m = Math.floor((5 * e + 2) / 153);
+    return { y: 100 * b + d - 4800 + Math.floor(m / 10), m: m + 3 - 12 * Math.floor(m / 10), d: e - Math.floor((153 * m + 2) / 5) + 1 };
+  }
+
+  root.MM = { SY: SY, LM: LM, MO: MO, checkWatat: checkWatat, getMyYearInfo: getMyYearInfo, j2m: j2m, m2j: m2j, g2j: g2j, j2g: j2g };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.MM;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// Calendar-selection + pawn-interest logic built on mmengine.js.
+// Function names follow the client's reference list: monthOptions, validMonth, validFortnightDate,
+// logicalElapsed, interestMonths. Nothing here reads UI labels — everything uses engine codes / JDN.
+(function (root) {
+  'use strict';
+  var MM = root.MM || require('./mmengine.js');
+
+  var MIN_YEAR = 1300, MAX_YEAR = 1500;
+  // Years the client wants shown with Late Tagu / Late Kason labels when the engine gives no explicit 13/14.
+  var SPECIAL_LATE_YEARS = [1308, 1319, 1330, 1342, 1353, 1364, 1375, 1387, 1398];
+
+  var MONTH_NAMES = {
+    0: 'ပထမဝါဆို', 1: 'တန်ခူး', 2: 'ကဆုန်', 3: 'နယုန်', 4: 'ဝါဆို', 5: 'ဝါခေါင်', 6: 'တော်သလင်း',
+    7: 'သီတင်းကျွတ်', 8: 'တန်ဆောင်မုန်း', 9: 'နတ်တော်', 10: 'ပြာသို', 11: 'တပို့တွဲ', 12: 'တပေါင်း',
+    13: 'နှောင်းတန်ခူး', 14: 'နှောင်းကဆုန်'
+  };
+
+  function mmDigits(n) { return String(n).replace(/\d/g, function (d) { return '၀၁၂၃၄၅၆၇၈၉'.charAt(+d); }); }
+  function yearLabel(y) { return mmDigits(y) + ' - ခု'; }
+
+  // ---- all valid days of a Myanmar year (round-trip validated against the engine) ----
+  var yearCache = {};
+  function yearDays(Y) {
+    if (yearCache[Y]) return yearCache[Y];
+    var lo = Math.floor(MM.MO + Y * MM.SY) - 3, hi = Math.ceil(MM.MO + (Y + 1) * MM.SY) + 3, out = [];
+    for (var j = lo; j <= hi; j++) {
+      var r = MM.j2m(j);
+      if (r.my !== Y) continue;
+      if (MM.m2j(r.my, r.mm, r.dm) !== j) continue; // invalid -> never offered
+      out.push({ jdn: j, my: Y, mm: r.mm, dm: r.dm, mp: r.mp, md: r.md, myt: r.myt });
+    }
+    yearCache[Y] = out;
+    return out;
+  }
+
+  function isSpecialYear(Y) { return SPECIAL_LATE_YEARS.indexOf(Y) >= 0; }
+
+  // label for a month code inside a given year (display only; never used for calculation)
+  function monthLabel(Y, code, codesInYear, myt) {
+    if (code === 4) return myt ? 'ဒုတိယဝါဆို' : 'ဝါဆို';
+    if (isSpecialYear(Y)) {
+      // explicit engine codes 13/14 win; relabel only when the engine did not give them
+      if (code === 1 && codesInYear.indexOf(13) < 0) return MONTH_NAMES[13];
+      if (code === 2 && codesInYear.indexOf(14) < 0) return MONTH_NAMES[14];
+    }
+    return MONTH_NAMES[code];
+  }
+
+  // chronological month list for a year; a month is offered if ANY valid date exists in it
+  function monthOptions(Y) {
+    var days = yearDays(Y), order = [], info = {};
+    days.forEach(function (d) {
+      if (!info[d.mm]) { info[d.mm] = { code: d.mm, count: 0, firstDm: d.dm, lastDm: d.dm, myt: d.myt }; order.push(d.mm); }
+      info[d.mm].count++; info[d.mm].lastDm = d.dm;
+    });
+    var seen = {}, out = [];
+    order.forEach(function (code) {
+      var o = info[code]; o.label = monthLabel(Y, code, order, o.myt);
+      if (seen[o.label]) return; // never show two options with the same label
+      seen[o.label] = 1; out.push(o);
+    });
+    return out;
+  }
+
+  function validMonth(Y, code) { return yearDays(Y).some(function (d) { return d.mm === code; }); }
+
+  // phase: 'waxing' (လဆန်း, incl. full moon) | 'waning' (လဆုတ်, incl. new moon)
+  function fortnightDays(Y, code, phase) {
+    return yearDays(Y).filter(function (d) {
+      return d.mm === code && (phase === 'waxing' ? d.mp <= 1 : d.mp >= 2);
+    });
+  }
+  function validFortnightDate(Y, code, phase, md) {
+    var hit = fortnightDays(Y, code, phase).filter(function (d) { return d.md === md; })[0];
+    return hit ? hit.jdn : null;
+  }
+
+  // ---- lunar-month ordinals (engine-derived, no Gregorian arithmetic) ----
+  var starts = null, startsLo = 0;
+  function buildStarts() {
+    var lo = Math.floor(MM.MO + (MIN_YEAR - 3) * MM.SY), hi = Math.ceil(MM.MO + (MAX_YEAR + 4) * MM.SY);
+    starts = []; startsLo = lo;
+    for (var j = lo; j <= hi; j++) if (MM.j2m(j).dm === 1) starts.push(j);
+  }
+  function ordinal(jdn) { // index of the lunar month containing jdn
+    if (!starts) buildStarts();
+    var a = 0, b = starts.length - 1;
+    if (jdn < starts[0] || jdn >= starts[b]) throw new Error('ရက်စွဲက ထောက်ပံ့တဲ့ ခုနှစ်အပိုင်းအခြားအပြင်ဖြစ်နေပါတယ်။');
+    while (a < b) { var m = (a + b + 1) >> 1; if (starts[m] <= jdn) a = m; else b = m - 1; }
+    return a;
+  }
+
+  // logical elapsed days: whole Myanmar months count as 30, plus the day-of-month difference
+  function logicalElapsed(startJdn, endJdn) {
+    var s = MM.j2m(startJdn), e = MM.j2m(endJdn);
+    return (ordinal(endJdn) - ordinal(startJdn)) * 30 + (e.dm - s.dm);
+  }
+
+  function interestMonths(diff) {
+    if (diff < 0) throw new Error('လာရွေးရက်က အပေါင်စရက်ထက် စောနေပါတယ်။');
+    if (diff <= 15) return 0.5;
+    if (diff <= 31) return 1;
+    return 1.5 + Math.floor((diff - 32) / 15) * 0.5;
+  }
+
+  // Start Myanmar date + n Myanmar calendar (lunar) months. Same day-of-month, clamped to month length.
+  function addMonths(jdn, n) {
+    var o = ordinal(jdn) + n, dm = MM.j2m(jdn).dm;
+    if (o < 0 || o + 1 >= starts.length) throw new Error('ရက်စွဲက ထောက်ပံ့တဲ့ ခုနှစ်အပိုင်းအခြားအပြင်ဖြစ်နေပါတယ်။');
+    var len = starts[o + 1] - starts[o], d = Math.min(dm, len);
+    return { jdn: starts[o] + d - 1, clamped: d !== dm };
+  }
+  function pawnExpiry(startJdn) { return addMonths(startJdn, 12); }
+
+  // Loan duration in Myanmar months (0.5 steps). 1 month = 30 logical days, the same unit interestMonths() uses,
+  // so interestMonths(logicalElapsed(pawn, due)) == months whenever the target month is long enough.
+  function addDuration(jdn, months) {
+    var o = ordinal(jdn), dm = MM.j2m(jdn).dm, total = dm + Math.round(months * 30);
+    var no = o + Math.floor((total - 1) / 30), d = ((total - 1) % 30) + 1;
+    if (no < 0 || no + 1 >= starts.length) throw new Error('ရက်စွဲက ထောက်ပံ့တဲ့ ခုနှစ်အပိုင်းအခြားအပြင်ဖြစ်နေပါတယ်။');
+    var len = starts[no + 1] - starts[no], dd = Math.min(d, len);
+    return { jdn: starts[no] + dd - 1, clamped: dd !== d };
+  }
+
+  var labelCache = {};
+  function monthLabelFor(Y, code) {
+    if (!labelCache[Y]) {
+      var m = {}; monthOptions(Y).forEach(function (o) { m[o.code] = o.label; });
+      labelCache[Y] = m;
+    }
+    return labelCache[Y][code] || MONTH_NAMES[code];
+  }
+
+  // ---- display helpers ----
+  function describe(jdn) {
+    var r = MM.j2m(jdn), codes = monthOptions(r.my).map(function (o) { return o.code; });
+    var label = monthLabel(r.my, r.mm, codes, r.myt);
+    var ph = r.mp === 0 ? 'လဆန်း ' + mmDigits(r.md) : r.mp === 1 ? 'လပြည့်' : r.mp === 2 ? 'လဆုတ် ' + mmDigits(r.md) : 'လကွယ် (လဆုတ် ' + mmDigits(r.md) + ')';
+    return yearLabel(r.my) + ' ' + label + ' ' + ph + (r.mp <= 1 || true ? ' ရက်' : '');
+  }
+  function dayOptionLabel(d) {
+    if (d.mp === 1) return 'လပြည့် (' + mmDigits(d.md) + ')';
+    if (d.mp === 3) return 'လကွယ် (' + mmDigits(d.md) + ')';
+    return mmDigits(d.md);
+  }
+
+  root.MMX = {
+    MIN_YEAR: MIN_YEAR, MAX_YEAR: MAX_YEAR, SPECIAL_LATE_YEARS: SPECIAL_LATE_YEARS, MONTH_NAMES: MONTH_NAMES,
+    mmDigits: mmDigits, yearLabel: yearLabel, yearDays: yearDays, monthOptions: monthOptions, validMonth: validMonth,
+    fortnightDays: fortnightDays, validFortnightDate: validFortnightDate, ordinal: ordinal, logicalElapsed: logicalElapsed,
+    interestMonths: interestMonths, addMonths: addMonths, pawnExpiry: pawnExpiry, addDuration: addDuration, monthLabelFor: monthLabelFor,
+    describe: describe, dayOptionLabel: dayOptionLabel
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.MMX;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// Test cases for the Myanmar calendar + pawn interest logic (client list + engine sanity).
+(function (root) {
+  'use strict';
+  var MM = root.MM || require('./mmengine.js');
+  var X = root.MMX || require('./mmlogic.js');
+
+  function runTests() {
+    var T = [];
+    function t(name, fn) {
+      try { var r = fn(); T.push({ name: name, pass: r.ok, detail: r.detail || '' }); }
+      catch (e) { T.push({ name: name, pass: false, detail: 'Error: ' + e.message }); }
+    }
+    function at(Y, code, phase, md) {
+      var j = X.validFortnightDate(Y, code, phase, md);
+      if (j === null) throw new Error('invalid date ' + Y + '/' + code + '/' + phase + '/' + md);
+      return j;
+    }
+    function months(a, b) { return X.interestMonths(X.logicalElapsed(a, b)); }
+
+    t('လဆန်း ၁ → လဆုတ် ၁ = ၀.၅ လ', function () {
+      var a = at(1389, 3, 'waxing', 1), b = at(1389, 3, 'waning', 1), m = months(a, b);
+      return { ok: m === 0.5, detail: 'elapsed ' + X.logicalElapsed(a, b) + ' ရက် → ' + m + ' လ' };
+    });
+    t('လဆန်း ၁ → လဆုတ် ၂ = ၁ လ', function () {
+      var a = at(1389, 3, 'waxing', 1), b = at(1389, 3, 'waning', 2), m = months(a, b);
+      return { ok: m === 1, detail: 'elapsed ' + X.logicalElapsed(a, b) + ' ရက် → ' + m + ' လ' };
+    });
+    t('ဝါထပ်နှစ် (၁၃၈၈) - ဝါထပ်လ ပါဝင်ပြီး လကိန်းမှန်', function () {
+      var info = MM.getMyYearInfo(1388), common = MM.getMyYearInfo(1389);
+      var a = at(1388, 3, 'waxing', 1), b = at(1388, 4, 'waxing', 1), a2 = at(1389, 3, 'waxing', 1), b2 = at(1389, 4, 'waxing', 1);
+      var wat = months(a, b), com = months(a2, b2);
+      return { ok: info.myt > 0 && common.myt === 0 && wat === 2 && com === 1, detail: 'ဝါထပ်နှစ် နယုန်→ဒုတိယဝါဆို = ' + wat + ' လ၊ ဝါမထပ်နှစ် နယုန်→ဝါဆို = ' + com + ' လ' };
+    });
+    t('ပထမဝါဆို / ဒုတိယဝါဆို', function () {
+      var o = X.monthOptions(1388), labels = o.map(function (x) { return x.label; });
+      var i1 = labels.indexOf('ပထမဝါဆို'), i2 = labels.indexOf('ဒုတိယဝါဆို'), c = X.monthOptions(1389).map(function (x) { return x.label; });
+      return { ok: i1 >= 0 && i2 === i1 + 1 && c.indexOf('ပထမဝါဆို') < 0 && c.indexOf('ဝါဆို') >= 0, detail: '၁၃၈၈: ' + labels.join(' · ') };
+    });
+    t('Special years - နှောင်းတန်ခူး / နှောင်းကဆုန် (label မထပ်၊ date အားလုံး valid)', function () {
+      var bad = [], info = [];
+      X.SPECIAL_LATE_YEARS.forEach(function (Y) {
+        var o = X.monthOptions(Y), seen = {};
+        o.forEach(function (m) { if (seen[m.label]) bad.push(Y + ' dup ' + m.label); seen[m.label] = 1; });
+        var codes = o.map(function (m) { return m.code; });
+        X.yearDays(Y).forEach(function (d) { if (MM.m2j(d.my, d.mm, d.dm) !== d.jdn) bad.push(Y + ' invalid'); });
+        info.push(X.mmDigits(Y) + (codes.indexOf(13) >= 0 ? ':၁၃' : '') + (codes.indexOf(14) >= 0 ? ',၁၄' : ''));
+      });
+      return { ok: bad.length === 0, detail: bad.length ? bad.join('; ') : 'engine explicit late codes → ' + info.join(' ') };
+    });
+    t('ခုနှစ် ၁၃၀၀–၁၅၀၀ - duplicate label မရှိ၊ month အားလုံး valid date ရှိ', function () {
+      var bad = 0;
+      for (var Y = X.MIN_YEAR; Y <= X.MAX_YEAR; Y++) {
+        var o = X.monthOptions(Y), seen = {};
+        o.forEach(function (m) { if (seen[m.label]) bad++; seen[m.label] = 1; if (!X.validMonth(Y, m.code)) bad++; });
+      }
+      return { ok: bad === 0, detail: '၂၀၁ နှစ် စစ်ပြီး၊ ပြဿနာ ' + bad };
+    });
+    t('Myanmar year boundary မှာ partial month', function () {
+      var o = X.monthOptions(1387), tagu = o.filter(function (m) { return m.code === 1; })[0];
+      var day1 = X.validFortnightDate(1387, 1, 'waxing', 1);
+      return { ok: !!tagu && tagu.firstDm > 1 && day1 === null && X.validMonth(1387, 1), detail: '၁၃၈၇ ခုနှစ် တန်ခူးက dm ' + (tagu && tagu.firstDm) + ' ကနေ ' + (tagu && tagu.count) + ' ရက်သာ ပါ (လဆန်း ၁ မရှိ၊ month ကတော့ ပြ)' };
+    });
+    t('၁၂ လကျော် multi-year interest (cap မရှိ)', function () {
+      var a = at(1388, 6, 'waning', 4), b = at(1391, 6, 'waning', 4), el = X.logicalElapsed(a, b), m = X.interestMonths(el);
+      return { ok: m > 12 && m === 37, detail: '၁၃၈၈ → ၁၃၉၁ (ဝါထပ်နှစ်ပါ) elapsed ' + el + ' ရက် → ' + m + ' လ' };
+    });
+    t('Start date + ၁၂ Myanmar months = pawn expiry', function () {
+      var a = at(1388, 6, 'waning', 4), e = X.pawnExpiry(a), r = MM.j2m(e.jdn);
+      var ok1 = r.my === 1389 && r.mm === 6 && r.mp === 2 && r.md === 4;
+      var bad = 0, n = 0;
+      X.yearDays(1388).concat(X.yearDays(1389)).forEach(function (d) {
+        var x = X.pawnExpiry(d.jdn), rr = MM.j2m(x.jdn); n++;
+        if (X.ordinal(x.jdn) !== X.ordinal(d.jdn) + 12) bad++;
+        if (!x.clamped && rr.dm !== d.dm) bad++;
+      });
+      return { ok: ok1 && bad === 0, detail: X.describe(a) + ' → ' + X.describe(e.jdn) + ' (Gregorian ၃၆၀ ရက်ပေါင်းတာ မဟုတ်၊ ' + n + ' ရက် sweep စစ်ပြီး)' };
+    });
+    t('Pawn date → Due date ကိုက်ညီမှု (၀.၅ / ၁ / ၁.၅ / ၂ / ၃ / ၆ / ၁၂ လ)', function () {
+      var durs = [0.5, 1, 1.5, 2, 3, 6, 12], bad = [], n = 0;
+      [1387, 1388, 1389, 1391].forEach(function (Y) {
+        X.yearDays(Y).forEach(function (d) {
+          durs.forEach(function (m) {
+            var due = X.addDuration(d.jdn, m); n++;
+            if (due.clamped) return;
+            if (X.interestMonths(X.logicalElapsed(d.jdn, due.jdn)) !== m) bad.push(Y + '/' + d.mm + '/' + d.dm + '+' + m);
+            if (due.jdn <= d.jdn) bad.push('not after ' + d.jdn);
+          });
+        });
+      });
+      return { ok: bad.length === 0, detail: n + ' ပေါင်းစပ်မှု စစ်ပြီး၊ မကိုက်တာ ' + bad.length + (bad.length ? ' (' + bad.slice(0, 3).join(', ') + ')' : '') };
+    });
+    t('Half Month = လဆန်း ၁ → လဆုတ် ၁ ၊ ၁ လ = နောက်လ လဆန်း ၁', function () {
+      var a = at(1389, 3, 'waxing', 1), h = X.addDuration(a, 0.5), o = X.addDuration(a, 1);
+      var hr = MM.j2m(h.jdn), or = MM.j2m(o.jdn);
+      return { ok: hr.mp === 2 && hr.md === 1 && or.mm === 4 && or.mp === 0 && or.md === 1, detail: X.describe(h.jdn) + ' | ' + X.describe(o.jdn) };
+    });
+    t('Redeem date စောနေရင် error', function () {
+      var a = at(1389, 3, 'waning', 2), b = at(1389, 3, 'waxing', 1), msg = '';
+      try { months(a, b); } catch (e) { msg = e.message; }
+      return { ok: msg.indexOf('စောနေ') >= 0, detail: msg };
+    });
+    t('interestMonths ကန့်သတ်ချက်များ', function () {
+      var c = [[0, 0.5], [15, 0.5], [16, 1], [31, 1], [32, 1.5], [46, 1.5], [47, 2], [360, 12]], bad = c.filter(function (x) { return X.interestMonths(x[0]) !== x[1]; });
+      return { ok: bad.length === 0, detail: bad.length ? JSON.stringify(bad) : '၈ ခု မှန်' };
+    });
+    t('Engine round-trip (j2m ↔ m2j) ၁၃၀၀–၁၅၀၀ ရက်တိုင်း', function () {
+      var lo = MM.g2j(1938, 6, 1), hi = MM.g2j(2138, 6, 1), bad = 0, n = 0;
+      for (var j = lo; j <= hi; j++) { var r = MM.j2m(j); n++; if (MM.m2j(r.my, r.mm, r.dm) !== j) bad++; }
+      return { ok: bad === 0, detail: n + ' ရက်၊ မကိုက်ခြင်း ' + bad };
+    });
+    t('Engine ရက်ဆက်တိုက်မှု (လအသစ်ဆို ၁ ရက်ကနေစ)', function () {
+      var lo = MM.g2j(1938, 6, 1), hi = MM.g2j(2138, 6, 1), bad = 0;
+      for (var j = lo; j < hi; j++) {
+        var a = MM.j2m(j), b = MM.j2m(j + 1);
+        if (a.my === b.my) { if (a.mm === b.mm ? b.dm !== a.dm + 1 : b.dm !== 1) bad++; }
+        else if (!(b.dm === a.dm + 1 || b.dm === 1)) bad++;
+      }
+      return { ok: bad === 0, detail: 'ပြဿနာ ' + bad };
+    });
+    return T;
+  }
+
+  root.MMT = { runTests: runTests };
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.MMT;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var MM = window.MM, X = window.MMX;
+  var GMN = ['ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်', 'ဇူလိုင်', 'ဩဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ'];
+  var GMS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var DUR = [[0.5, 'ဝက်လ'], [1, '၁ လ'], [1.5, '၁.၅ လ'], [2, '၂ လ'], [3, '၃ လ'], [6, '၆ လ'], [12, '၁ နှစ် (၁၂ လ)']];
+  var MIN_G = 1939, MAX_G = 2137;
+  var st = { vy: 2026, vm: 10, pawn: null, dur: 12 };
+
+  function $(id) { return document.getElementById(id); }
+  function opt(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t; return o; }
+  function greg(j) { var g = MM.j2g(j); return g.d + ' ' + GMS[g.m - 1] + ' ' + g.y; }
+  function todayJdn() { var d = new Date(); return MM.g2j(d.getFullYear(), d.getMonth() + 1, d.getDate()); }
+
+  function dayText(r) {
+    return r.mp === 0 ? 'ဆန်း ' + X.mmDigits(r.md) : r.mp === 1 ? 'လပြည့်' : r.mp === 2 ? 'ဆုတ် ' + X.mmDigits(r.md) : 'လကွယ်';
+  }
+
+  function renderSummary() {
+    var err = $('err'), naive = $('n-naive');
+    err.hidden = true; naive.hidden = true;
+    $('v-pawn').textContent = X.describe(st.pawn);
+    $('r-pawn').textContent = 'ဂရက်ဂိုရီ ' + greg(st.pawn) + ' (ကိုးကားရန်သာ)';
+    try {
+      var due = X.addDuration(st.pawn, st.dur), el = X.logicalElapsed(st.pawn, due.jdn);
+      st.due = due.jdn;
+      $('v-due').textContent = X.describe(due.jdn);
+      $('r-due').textContent = 'ဂရက်ဂိုရီ ' + greg(due.jdn) + (due.clamped ? ' · လရက်မပြည့်လို့ လကုန်ရက်ယူထား' : '');
+      $('n-elapsed').textContent = 'မြန်မာလ ' + X.mmDigits(st.dur) + ' လ = logical ' + X.mmDigits(el) + ' ရက်၊ အတိုးတွက်ရင် ' + X.mmDigits(X.interestMonths(el).toFixed(1)) + ' လ။ ပေါင်းတာကို မြန်မာလ အတိုင်းပဲ တွက်တာပါ။';
+      var nv = st.pawn + Math.round(st.dur * 30);
+      if (nv !== due.jdn) {
+        naive.hidden = false;
+        naive.textContent = 'နှိုင်းယှဉ်ချက်: ဂရက်ဂိုရီ ' + Math.round(st.dur * 30) + ' ရက်ပေါင်းရင် ' + X.describe(nv) + ' ဖြစ်ပြီး ဒီရက်နဲ့ မကိုက်ပါ။';
+      }
+    } catch (e) {
+      st.due = null;
+      $('v-due').textContent = '–'; $('r-due').textContent = ''; $('n-elapsed').textContent = '';
+      err.hidden = false; err.textContent = e.message;
+    }
+  }
+
+  function renderChips() {
+    var box = $('chips'); box.innerHTML = '';
+    DUR.forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = d[1];
+      b.setAttribute('aria-pressed', d[0] === st.dur ? 'true' : 'false');
+      b.addEventListener('click', function () { st.dur = d[0]; renderChips(); renderSummary(); renderGrid(); });
+      box.appendChild(b);
+    });
+  }
+
+  function renderGrid() {
+    var first = MM.g2j(st.vy, st.vm, 1), next = st.vm === 12 ? MM.g2j(st.vy + 1, 1, 1) : MM.g2j(st.vy, st.vm + 1, 1);
+    var n = next - first, lead = (first + 1) % 7, today = todayJdn(), html = '', i, titles = [], seen = {}, prevMy = MM.j2m(first - 1).my;
+    for (i = 0; i < lead; i++) html += '<span></span>';
+    for (i = 0; i < n; i++) {
+      var j = first + i, r = MM.j2m(j), label = X.monthLabelFor(r.my, r.mm), wd = (j + 1) % 7, cls = ['day'];
+      var key = r.my + '|' + r.mm;
+      if (!seen[key]) { seen[key] = 1; titles.push(X.yearLabel(r.my) + ' ' + label); }
+      var yearTag = r.my !== prevMy ? X.mmDigits(r.my) + ' ခု · ' : '';
+      if (r.dm === 1 || i === 0 || yearTag) cls.push('first');
+      if (wd === 0) cls.push('sun');
+      if (j === today) cls.push('today');
+      if (j === st.pawn) cls.push('pawn');
+      if (j === st.due) cls.push('due');
+      prevMy = r.my;
+      var aria = st.vy + ' ' + GMN[st.vm - 1] + ' ' + (i + 1) + '၊ ' + X.yearLabel(r.my) + ' ' + label + ' ' + dayText(r);
+      html += '<button type="button" class="' + cls.join(' ') + '" data-j="' + j + '" aria-label="' + aria + '"' + (j === st.pawn ? ' aria-pressed="true"' : '') + '>' +
+        '<span class="g">' + (i + 1) + '</span>' + (r.mp === 1 ? '<i class="dot full"></i>' : r.mp === 3 ? '<i class="dot newm"></i>' : '') +
+        '<span class="m">' + dayText(r) + '</span><span class="mn">' + yearTag + label + '</span></button>';
+    }
+    $('grid').innerHTML = html;
+    $('t-mm').textContent = titles.join(' / ');
+    $('t-gg').textContent = GMN[st.vm - 1] + ' ' + st.vy;
+    $('b-prev').disabled = st.vy === MIN_G && st.vm === 1;
+    $('b-next').disabled = st.vy === MAX_G && st.vm === 12;
+    syncJump();
+  }
+
+  function syncJump() {
+    var r = MM.j2m(MM.g2j(st.vy, st.vm, 15)), ys = $('j-year');
+    ys.value = String(r.my);
+    fillJumpMonths(r.mm);
+  }
+  function fillJumpMonths(keep) {
+    var Y = +$('j-year').value, s = $('j-month'), list = X.monthOptions(Y), ok = false;
+    s.innerHTML = '';
+    list.forEach(function (m) { s.appendChild(opt(m.code, m.label + (m.count < 29 ? ' · တစ်စိတ်တစ်ပိုင်း' : ''))); if (m.code === keep) ok = true; });
+    s.value = String(ok ? keep : list[0].code);
+  }
+  function gotoMyanmar() {
+    var Y = +$('j-year').value, code = +$('j-month').value;
+    var d = X.yearDays(Y).filter(function (x) { return x.mm === code; })[0];
+    if (!d) return;
+    var g = MM.j2g(d.jdn); st.vy = g.y; st.vm = g.m; renderGrid();
+  }
+  function shift(delta) {
+    var m = st.vm + delta, y = st.vy;
+    if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+    if (y < MIN_G || y > MAX_G) return;
+    st.vy = y; st.vm = m; renderGrid();
+  }
+
+  function runTests() {
+    var res = window.MMT.runTests(), ul = $('t-list'), pass = res.filter(function (x) { return x.pass; }).length;
+    ul.innerHTML = '';
+    res.forEach(function (x) {
+      var li = document.createElement('li'); li.className = x.pass ? 'pass' : 'fail';
+      var mk = document.createElement('span'); mk.className = 'mark'; mk.textContent = x.pass ? '✓' : '✗';
+      var tx = document.createElement('span'); tx.textContent = x.name;
+      var sm = document.createElement('small'); sm.textContent = x.detail; tx.appendChild(sm);
+      li.appendChild(mk); li.appendChild(tx); ul.appendChild(li);
+    });
+    var sum = $('t-sum'); sum.textContent = pass + '/' + res.length + ' ကျော်'; sum.className = 'pill ' + (pass === res.length ? 'ok' : 'bad');
+  }
+
+  // init: example pawn date 1388 Tawthalin waning 4, one year
+  for (var y = X.MIN_YEAR; y <= X.MAX_YEAR; y++) $('j-year').appendChild(opt(y, X.yearLabel(y)));
+  st.pawn = X.validFortnightDate(1388, 6, 'waning', 4);
+  var g0 = MM.j2g(st.pawn); st.vy = g0.y; st.vm = g0.m;
+
+  $('grid').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.day') : null;
+    if (!b) return;
+    st.pawn = +b.getAttribute('data-j'); renderSummary(); renderGrid();
+  });
+  $('b-prev').addEventListener('click', function () { shift(-1); });
+  $('b-next').addEventListener('click', function () { shift(1); });
+  $('b-today').addEventListener('click', function () { var d = new Date(); st.vy = d.getFullYear(); st.vm = d.getMonth() + 1; renderGrid(); });
+  $('j-year').addEventListener('change', function () { fillJumpMonths(+$('j-month').value); gotoMyanmar(); });
+  $('j-month').addEventListener('change', gotoMyanmar);
+
+  renderChips(); renderSummary(); renderGrid();
+  setTimeout(runTests, 60);
+})();
+
+</script>
+
+</body></html>
